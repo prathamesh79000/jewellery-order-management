@@ -1,30 +1,7 @@
-// import { Box, Typography } from "@mui/material";
-
-// function App() {
-//   return (
-//     <Box
-//       sx={{
-//         minHeight: "100vh",
-//         display: "flex",
-//         alignItems: "center",
-//         justifyContent: "center",
-//         p: 3,
-//       }}
-//     >
-//       <Typography sx={{ variant: "h4", fontWeight: 600 }}>
-//         Hardik Jewellers
-//       </Typography>
-//     </Box>
-//   );
-// }
-
-// export default App;
-
-
-import AppLayout from "./layouts/AppLayout";
+import AppRouter from "./routes/AppRouter";
 
 function App() {
-  return <AppLayout />;
+  return <AppRouter />;
 }
 
 export default App;

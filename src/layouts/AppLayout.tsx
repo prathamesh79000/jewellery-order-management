@@ -12,13 +12,22 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
+  Avatar,
+  Divider,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 
+import LogoutIcon from "@mui/icons-material/Logout";
+import { isAdmin } from "../utils/permissions";
 import MenuIcon from "@mui/icons-material/Menu";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import HistoryIcon from "@mui/icons-material/History";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import { useAuth } from "../contexts/AuthContext";
+import { logoutUser } from "../services/authService";
+import { useNavigate } from "react-router-dom";
 
 const drawerWidth = 240;
 
@@ -26,22 +35,28 @@ const navigationItems = [
   {
     label: "Dashboard",
     icon: <DashboardIcon />,
+    adminOnly: false,
   },
   {
     label: "Orders",
     icon: <AssignmentIcon />,
+    adminOnly: false,
   },
   {
     label: "History",
     icon: <HistoryIcon />,
+    adminOnly: false,
   },
   {
     label: "Admin",
     icon: <AdminPanelSettingsIcon />,
+    adminOnly: true,
   },
 ];
 
 function AppLayout() {
+  const navigate = useNavigate();
+  const { userProfile } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -49,6 +64,28 @@ function AppLayout() {
 
   const handleDrawerToggle = () => {
     setMobileOpen((previous) => !previous);
+  };
+
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
+  const menuOpen = Boolean(anchorEl);
+
+  const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setAnchorEl(null);
+    }
   };
 
   const drawerContent = (
@@ -60,13 +97,22 @@ function AppLayout() {
       </Toolbar>
 
       <List>
-        {navigationItems.map((item) => (
-          <ListItemButton key={item.label}>
-            <ListItemIcon>{item.icon}</ListItemIcon>
+        {navigationItems
+          .filter((item) => !item.adminOnly || isAdmin(userProfile))
+          .map((item) => (
+            <ListItemButton
+              key={item.label}
+              onClick={() => {
+                if (item.label === "Admin") {
+                  navigate("/admin");
+                }
+              }}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
 
-            <ListItemText primary={item.label} />
-          </ListItemButton>
-        ))}
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          ))}
       </List>
     </Box>
   );
@@ -100,7 +146,57 @@ function AppLayout() {
             Order Management
           </Typography>
 
-          <Typography variant="body2">User</Typography>
+          <IconButton
+            onClick={handleUserMenuOpen}
+            color="inherit"
+            sx={{
+              ml: 1,
+            }}
+          >
+            <Avatar
+              sx={{
+                width: 36,
+                height: 36,
+                bgcolor: "secondary.main",
+                fontSize: 15,
+              }}
+            >
+              {userProfile?.name?.charAt(0).toUpperCase()}
+            </Avatar>
+          </IconButton>
+
+          <Menu
+            anchorEl={anchorEl}
+            open={menuOpen}
+            onClose={handleUserMenuClose}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "right",
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "right",
+            }}
+          >
+            <Box sx={{ px: 2, py: 1 }}>
+              <Typography sx={{ fontWeight: 700 }}>
+                {userProfile?.name}
+              </Typography>
+
+              <Typography variant="body2" color="text.secondary">
+                {userProfile?.role === "admin" ? "Administrator" : "Staff"}
+              </Typography>
+            </Box>
+
+            <Divider />
+
+            <MenuItem onClick={handleLogout}>
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" />
+              </ListItemIcon>
+              Logout
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
 
