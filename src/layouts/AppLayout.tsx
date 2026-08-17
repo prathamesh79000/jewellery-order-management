@@ -27,7 +27,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import { useAuth } from "../contexts/AuthContext";
 import { logoutUser } from "../services/authService";
-import { useNavigate } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 
 const drawerWidth = 240;
 
@@ -103,6 +103,18 @@ function AppLayout() {
             <ListItemButton
               key={item.label}
               onClick={() => {
+                if (item.label === "Dashboard") {
+                  navigate("/");
+                }
+                
+                if (item.label === "Orders") {
+                  navigate("/orders");
+                }
+
+                if (item.label === "History") {
+                  navigate("/history");
+                }
+
                 if (item.label === "Admin") {
                   navigate("/admin");
                 }
@@ -255,13 +267,7 @@ function AppLayout() {
           mt: 8,
         }}
       >
-        <Typography sx={{ variant: "h4", fontWeight: 700 }}>
-          Welcome to Hardik Jewellers
-        </Typography>
-
-        <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
-          Order management system
-        </Typography>
+        <Outlet />
       </Box>
     </Box>
   );

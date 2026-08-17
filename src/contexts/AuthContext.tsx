@@ -1,6 +1,6 @@
 import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
 
-import { doc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 
 import {
   createContext,
@@ -44,43 +44,75 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      try {
-        setFirebaseUser(user);
+    let unsubscribeProfile: (() => void) | null = null;
 
-        if (!user) {
-          setUserProfile(null);
-          return;
-        }
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      /*
+       * Stop listening to the previous user's
+       * Firestore profile.
+       */
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+        unsubscribeProfile = null;
+      }
 
-        const userRef = doc(db, "users", user.uid);
-        const userSnapshot = await getDoc(userRef);
+      setFirebaseUser(user);
 
-        if (!userSnapshot.exists()) {
+      if (!user) {
+        setUserProfile(null);
+        setLoading(false);
+        return;
+      }
+
+      /*
+       * Listen to the authenticated user's
+       * Firestore profile in real time.
+       */
+      const userRef = doc(db, "users", user.uid);
+
+      unsubscribeProfile = onSnapshot(
+        userRef,
+        (userSnapshot) => {
+          if (!userSnapshot.exists()) {
+            console.error(
+              "Authenticated user does not have a Firestore profile.",
+            );
+
+            setUserProfile(null);
+            setLoading(false);
+            return;
+          }
+
+          const profile = userSnapshot.data() as UserProfile;
+
+          setUserProfile(profile);
+          setLoading(false);
+        },
+        (error) => {
           console.error(
-            "Authenticated user does not have a Firestore profile.",
+            "Failed to listen to authenticated user profile:",
+            error,
           );
 
           setUserProfile(null);
-          return;
-        }
-
-        const profile = userSnapshot.data() as UserProfile;
-
-        setUserProfile(profile);
-      } catch (error) {
-        console.error("Failed to load authenticated user profile:", error);
-
-        setUserProfile(null);
-      } finally {
-        setLoading(false);
-      }
+          setLoading(false);
+        },
+      );
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribeAuth();
+
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+      }
+    };
   }, []);
 
-  const isAuthenticated = firebaseUser !== null && userProfile !== null;
+  const isAuthenticated =
+    firebaseUser !== null &&
+    userProfile !== null &&
+    userProfile.disabled === false;
 
   return (
     <AuthContext.Provider
