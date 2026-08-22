@@ -9,6 +9,7 @@ import HistoryPage from "../pages/HistoryPage";
 import AdminRoute from "./AdminRoute";
 import EditOrderPage from "../pages/EditOrderPage";
 import DashboardPage from "../pages/DashboardPage";
+import CreateOrderPage from "../pages/CreateOrderPage";
 
 function AppRouter() {
   const { loading, isAuthenticated } = useAuth();
@@ -40,6 +41,8 @@ function AppRouter() {
         {/* ORDERS */}
 
         <Route path="/orders" element={<OrdersPage />} />
+
+        <Route path="/orders/create" element={<CreateOrderPage />} />
 
         <Route path="/orders/:orderNumber" element={<OrderDetailsPage />} />
 

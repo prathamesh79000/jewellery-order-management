@@ -11,7 +11,6 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import FiberNewIcon from "@mui/icons-material/FiberNew";
 import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
@@ -178,47 +177,57 @@ function StatCard({ label, value, icon }: StatCardProps) {
       >
         <Stack
           sx={{
-            direction: "row",
-            justifyContent: "space-between",
             alignItems: "center",
+            justifyContent: "center",
           }}
-          spacing={1}
+          spacing={{
+            xs: 0.5,
+            sm: 0.75,
+          }}
         >
-          <Box sx={{ minWidth: 0 }}>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{
-                fontSize: {
-                  xs: "0.72rem",
-                  sm: "0.875rem",
-                },
-                whiteSpace: "nowrap",
-              }}
-            >
-              {label}
-            </Typography>
+          {/* LABEL */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              fontSize: {
+                xs: "0.72rem",
+                sm: "0.875rem",
+              },
+              fontWeight: 500,
+              lineHeight: 1.2,
+              textAlign: "center",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {label}
+          </Typography>
 
-            <Typography
-              sx={{
-                fontSize: {
-                  xs: "1.6rem",
-                  sm: "2rem",
-                },
-                lineHeight: 1.1,
-                fontWeight: 700,
-                mt: 0.5,
-              }}
-            >
-              {value}
-            </Typography>
-          </Box>
+          {/* VALUE */}
+          <Typography
+            sx={{
+              fontSize: {
+                xs: "1.6rem",
+                sm: "2rem",
+              },
+              lineHeight: 1.1,
+              fontWeight: 700,
+              textAlign: "center",
+            }}
+          >
+            {value}
+          </Typography>
 
+          {/* ICON */}
           <Box
             sx={{
+              height: {
+                xs: 28,
+                sm: 36,
+              },
               display: "flex",
               alignItems: "center",
-              flexShrink: 0,
+              justifyContent: "center",
               "& svg": {
                 fontSize: {
                   xs: 24,
@@ -235,97 +244,107 @@ function StatCard({ label, value, icon }: StatCardProps) {
   );
 }
 
-interface PriorityCardProps {
-  label: string;
-  value: number;
-  color: "error" | "warning" | "success";
-  icon: React.ReactNode;
-}
+// interface PriorityCardProps {
+//   label: string;
+//   value: number;
+//   color: "error" | "warning" | "success";
+//   icon: React.ReactNode;
+// }
 
-function PriorityCard({ label, value, color, icon }: PriorityCardProps) {
-  return (
-    <Card
-      elevation={1}
-      sx={{
-        borderRadius: 2,
-        height: "100%",
-        borderLeft: 4,
-        borderColor: `${color}.main`,
-      }}
-    >
-      <CardContent
-        sx={{
-          p: {
-            xs: 1.5,
-            sm: 2,
-          },
-          "&:last-child": {
-            pb: {
-              xs: 1.5,
-              sm: 2,
-            },
-          },
-        }}
-      >
-        <Stack
-          sx={{
-            direction: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-          spacing={1}
-        >
-          <Box sx={{ minWidth: 0 }}>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{
-                fontSize: {
-                  xs: "0.72rem",
-                  sm: "0.875rem",
-                },
-                whiteSpace: "nowrap",
-              }}
-            >
-              {label}
-            </Typography>
+// function PriorityCard({ label, value, color, icon }: PriorityCardProps) {
+//   return (
+//     <Card
+//       elevation={1}
+//       sx={{
+//         borderRadius: 2,
+//         height: "100%",
+//         borderLeft: 4,
+//         borderColor: `${color}.main`,
+//       }}
+//     >
+//       <CardContent
+//         sx={{
+//           p: {
+//             xs: 1.5,
+//             sm: 2,
+//           },
+//           "&:last-child": {
+//             pb: {
+//               xs: 1.5,
+//               sm: 2,
+//             },
+//           },
+//         }}
+//       >
+//         <Stack
+//           sx={{
+//             alignItems: "center",
+//             justifyContent: "center",
+//           }}
+//           spacing={{
+//             xs: 0.5,
+//             sm: 0.75,
+//           }}
+//         >
+//           {/* LABEL */}
+//           <Typography
+//             variant="body2"
+//             color="text.secondary"
+//             sx={{
+//               fontSize: {
+//                 xs: "0.72rem",
+//                 sm: "0.875rem",
+//               },
+//               fontWeight: 500,
+//               lineHeight: 1.2,
+//               textAlign: "center",
+//               whiteSpace: "nowrap",
+//             }}
+//           >
+//             {label}
+//           </Typography>
 
-            <Typography
-              sx={{
-                fontSize: {
-                  xs: "1.6rem",
-                  sm: "2rem",
-                },
-                lineHeight: 1.1,
-                fontWeight: 700,
-                mt: 0.5,
-              }}
-            >
-              {value}
-            </Typography>
-          </Box>
+//           {/* VALUE */}
+//           <Typography
+//             sx={{
+//               fontSize: {
+//                 xs: "1.6rem",
+//                 sm: "2rem",
+//               },
+//               lineHeight: 1.1,
+//               fontWeight: 700,
+//               textAlign: "center",
+//             }}
+//           >
+//             {value}
+//           </Typography>
 
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              color: `${color}.main`,
-              flexShrink: 0,
-              "& svg": {
-                fontSize: {
-                  xs: 24,
-                  sm: 32,
-                },
-              },
-            }}
-          >
-            {icon}
-          </Box>
-        </Stack>
-      </CardContent>
-    </Card>
-  );
-}
+//           {/* ICON */}
+//           <Box
+//             sx={{
+//               height: {
+//                 xs: 28,
+//                 sm: 36,
+//               },
+//               display: "flex",
+//               alignItems: "center",
+//               justifyContent: "center",
+//               color: `${color}.main`,
+//               "& svg": {
+//                 fontSize: {
+//                   xs: 24,
+//                   sm: 32,
+//                 },
+//               },
+//             }}
+//           >
+//             {icon}
+//           </Box>
+//         </Stack>
+//       </CardContent>
+//     </Card>
+//   );
+// }
 
 function DashboardPage() {
   const navigate = useNavigate();
@@ -420,6 +439,20 @@ function DashboardPage() {
       .slice(0, 8);
   }, [activeOrders]);
 
+  const todaysDeliveries = useMemo(() => {
+    const today = new Date();
+
+    const todayString = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, "0"),
+      String(today.getDate()).padStart(2, "0"),
+    ].join("-");
+
+    return activeOrders
+      .filter((order) => order.estimatedDeliveryDate === todayString)
+      .sort((a, b) => a.orderNumber.localeCompare(b.orderNumber));
+  }, [activeOrders]);
+
   if (loading) {
     return (
       <Box
@@ -453,7 +486,16 @@ function DashboardPage() {
           },
         }}
       >
-        <Stack sx={{ direction: "row", alignItems: "center" }} spacing={1}>
+        <Stack
+          direction="row"
+          spacing={{
+            xs: 0.75,
+            sm: 1,
+          }}
+          sx={{
+            alignItems: "center",
+          }}
+        >
           <DashboardIcon
             color="primary"
             sx={{
@@ -461,6 +503,7 @@ function DashboardPage() {
                 xs: 22,
                 sm: 28,
               },
+              flexShrink: 0,
             }}
           />
 
@@ -472,6 +515,7 @@ function DashboardPage() {
                 xs: "1.5rem",
                 sm: "2.125rem",
               },
+              lineHeight: 1.2,
             }}
           >
             Dashboard
@@ -567,62 +611,268 @@ function DashboardPage() {
         </Box>
       </Box>
 
-      {/* DELIVERY PRIORITY */}
+      {/* REQUIRES ATTENTION */}
+
+      {/* REQUIRES ATTENTION */}
 
       <Typography
-        variant="h5"
+        variant="h6"
         sx={{
           fontWeight: 700,
           fontSize: {
-            xs: "1.15rem",
-            sm: "1.5rem",
+            xs: "1.1rem",
+            sm: "1.25rem",
+          },
+          mt: {
+            xs: 3,
+            sm: 4,
           },
           mb: 1.5,
         }}
       >
-        Delivery Priority
+        Requires Attention
       </Typography>
 
       <Box
         sx={{
           display: "grid",
           gridTemplateColumns: {
-            xs: "repeat(3, minmax(0, 1fr))",
+            xs: "1fr",
             sm: "repeat(3, minmax(0, 1fr))",
           },
           gap: {
-            xs: 1,
+            xs: 1.25,
             sm: 2,
-          },
-          mb: {
-            xs: 3,
-            sm: 4,
           },
         }}
       >
-        <PriorityCard
-          label="Overdue"
-          value={statistics.overdue}
-          color="error"
-          icon={<WarningAmberOutlinedIcon />}
-        />
+        {/* OVERDUE */}
 
-        <PriorityCard
-          label="Due Soon"
-          value={statistics.dueSoon}
-          color="warning"
-          icon={<AccessTimeOutlinedIcon />}
-        />
+        <Card
+          elevation={1}
+          sx={{
+            borderRadius: 2,
+            borderLeft: 4,
+            borderColor: "error.main",
+            height: "100%",
+          }}
+        >
+          <CardActionArea
+            onClick={() => navigate("/orders")}
+            sx={{
+              height: "100%",
+            }}
+          >
+            <CardContent
+              sx={{
+                minHeight: {
+                  xs: 120,
+                  sm: 128,
+                },
+                p: {
+                  xs: 1.5,
+                  sm: 2,
+                },
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+              }}
+            >
+              <WarningAmberOutlinedIcon
+                color="error"
+                sx={{
+                  fontSize: {
+                    xs: 24,
+                    sm: 28,
+                  },
+                  mb: 0.75,
+                }}
+              />
 
-        <PriorityCard
-          label="On Track"
-          value={Math.max(
-            statistics.totalActive - statistics.overdue - statistics.dueSoon,
-            0,
-          )}
-          color="success"
-          icon={<EventOutlinedIcon />}
-        />
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  fontSize: {
+                    xs: "0.75rem",
+                    sm: "0.875rem",
+                  },
+                  lineHeight: 1.2,
+                }}
+              >
+                Overdue
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontWeight: 700,
+                  fontSize: {
+                    xs: "1.4rem",
+                    sm: "1.6rem",
+                  },
+                  lineHeight: 1.2,
+                  mt: 0.25,
+                }}
+              >
+                {statistics.overdue}
+              </Typography>
+            </CardContent>
+          </CardActionArea>
+        </Card>
+
+        {/* DUE SOON */}
+
+        <Card
+          elevation={1}
+          sx={{
+            borderRadius: 2,
+            borderLeft: 4,
+            borderColor: "warning.main",
+            height: "100%",
+          }}
+        >
+          <CardActionArea
+            onClick={() => navigate("/orders")}
+            sx={{
+              height: "100%",
+            }}
+          >
+            <CardContent
+              sx={{
+                minHeight: {
+                  xs: 120,
+                  sm: 128,
+                },
+                p: {
+                  xs: 1.5,
+                  sm: 2,
+                },
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+              }}
+            >
+              <AccessTimeOutlinedIcon
+                color="warning"
+                sx={{
+                  fontSize: {
+                    xs: 24,
+                    sm: 28,
+                  },
+                  mb: 0.75,
+                }}
+              />
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  fontSize: {
+                    xs: "0.75rem",
+                    sm: "0.875rem",
+                  },
+                  lineHeight: 1.2,
+                }}
+              >
+                Due Soon
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontWeight: 700,
+                  fontSize: {
+                    xs: "1.4rem",
+                    sm: "1.6rem",
+                  },
+                  lineHeight: 1.2,
+                  mt: 0.25,
+                }}
+              >
+                {statistics.dueSoon}
+              </Typography>
+            </CardContent>
+          </CardActionArea>
+        </Card>
+
+        {/* TODAY'S DELIVERIES */}
+
+        <Card
+          elevation={1}
+          sx={{
+            borderRadius: 2,
+            borderLeft: 4,
+            borderColor: "info.main",
+            height: "100%",
+          }}
+        >
+          <CardActionArea
+            onClick={() => navigate("/orders")}
+            sx={{
+              height: "100%",
+            }}
+          >
+            <CardContent
+              sx={{
+                minHeight: {
+                  xs: 120,
+                  sm: 128,
+                },
+                p: {
+                  xs: 1.5,
+                  sm: 2,
+                },
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+              }}
+            >
+              <EventOutlinedIcon
+                color="info"
+                sx={{
+                  fontSize: {
+                    xs: 24,
+                    sm: 28,
+                  },
+                  mb: 0.75,
+                }}
+              />
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  fontSize: {
+                    xs: "0.75rem",
+                    sm: "0.875rem",
+                  },
+                  lineHeight: 1.2,
+                }}
+              >
+                Today's Deliveries
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontWeight: 700,
+                  fontSize: {
+                    xs: "1.4rem",
+                    sm: "1.6rem",
+                  },
+                  lineHeight: 1.2,
+                  mt: 0.25,
+                }}
+              >
+                {todaysDeliveries.length}
+              </Typography>
+            </CardContent>
+          </CardActionArea>
+        </Card>
       </Box>
 
       {/* ACTIVE ORDERS */}
@@ -747,46 +997,39 @@ function DashboardPage() {
                       },
                     }}
                   >
-                    <Stack spacing={1.25}>
-                      {/* TOP ROW */}
+                    {/* ORDER SUMMARY */}
 
-                      <Stack
-                        sx={{
-                          direction: "row",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                        spacing={1}
-                      >
-                        <Typography
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: {
-                              xs: "0.95rem",
-                              sm: "1rem",
-                            },
-                          }}
-                        >
-                          {order.orderNumber}
-                        </Typography>
-
-                        <Chip
-                          label={formatStatus(order.status)}
-                          color={getStatusColor(order.status)}
-                          size="small"
-                          sx={{
-                            fontWeight: 600,
-                            fontSize: {
-                              xs: "0.62rem",
-                              sm: "0.75rem",
-                            },
-                          }}
-                        />
-                      </Stack>
-
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: {
+                          xs: "1fr",
+                          sm: "1fr 1fr 1fr",
+                        },
+                        columnGap: {
+                          xs: 0,
+                          sm: 3,
+                        },
+                        rowGap: {
+                          xs: 1.5,
+                          sm: 0,
+                        },
+                      }}
+                    >
                       {/* CUSTOMER */}
 
-                      <Box>
+                      <Box
+                        sx={{
+                          minWidth: 0,
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "center",
+                          minHeight: {
+                            xs: "auto",
+                            sm: 72,
+                          },
+                        }}
+                      >
                         <Typography
                           sx={{
                             fontWeight: 600,
@@ -794,6 +1037,7 @@ function DashboardPage() {
                               xs: "0.9rem",
                               sm: "1rem",
                             },
+                            lineHeight: 1.3,
                           }}
                         >
                           {order.customer.name}
@@ -808,52 +1052,102 @@ function DashboardPage() {
                               xs: "0.75rem",
                               sm: "0.875rem",
                             },
+                            lineHeight: 1.3,
                           }}
                         >
                           {order.customer.phone}
                         </Typography>
                       </Box>
 
-                      <Divider />
+                      {/* ORDER NUMBER + STATUS */}
+
+                      <Box
+                        sx={{
+                          minWidth: 0,
+                          minHeight: {
+                            xs: "auto",
+                            sm: 72,
+                          },
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "center",
+                          alignItems: {
+                            xs: "flex-start",
+                            sm: "center",
+                          },
+                        }}
+                      >
+                        <Typography
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: {
+                              xs: "0.95rem",
+                              sm: "1rem",
+                            },
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {order.orderNumber}
+                        </Typography>
+
+                        <Chip
+                          label={formatStatus(order.status)}
+                          color={getStatusColor(order.status)}
+                          size="small"
+                          sx={{
+                            mt: 0.75,
+                            fontWeight: 600,
+                            fontSize: {
+                              xs: "0.62rem",
+                              sm: "0.7rem",
+                            },
+                          }}
+                        />
+                      </Box>
 
                       {/* DELIVERY */}
 
-                      <Stack
+                      <Box
                         sx={{
-                          direction: "row",
-                          justifyContent: "space-between",
-                          alignItems: "center",
+                          minWidth: 0,
+                          minHeight: {
+                            xs: "auto",
+                            sm: 72,
+                          },
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "center",
+                          alignItems: "flex-start",
                         }}
-                        spacing={1}
                       >
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography
-                            sx={{
-                              fontSize: {
-                                xs: "0.65rem",
-                                sm: "0.75rem",
-                              },
-                              variant: "caption",
-                              color: "text.secondary",
-                              display: "block",
-                            }}
-                          >
-                            Delivery
-                          </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{
+                            display: "block",
+                            fontSize: {
+                              xs: "0.65rem",
+                              sm: "0.75rem",
+                            },
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          Delivery
+                        </Typography>
 
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontWeight: 500,
-                              fontSize: {
-                                xs: "0.8rem",
-                                sm: "0.875rem",
-                              },
-                            }}
-                          >
-                            {formatDeliveryDate(order.estimatedDeliveryDate)}
-                          </Typography>
-                        </Box>
+                        <Typography
+                          sx={{
+                            mt: 0.35,
+                            fontWeight: 500,
+                            fontSize: {
+                              xs: "0.8rem",
+                              sm: "0.875rem",
+                            },
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {formatDeliveryDate(order.estimatedDeliveryDate)}
+                        </Typography>
 
                         <Chip
                           icon={getPriorityIcon(priority)}
@@ -862,53 +1156,62 @@ function DashboardPage() {
                           size="small"
                           variant="outlined"
                           sx={{
-                            flexShrink: 0,
+                            mt: 0.75,
                             fontWeight: 600,
                             fontSize: {
-                              xs: "0.6rem",
-                              sm: "0.7rem",
+                              xs: "0.58rem",
+                              sm: "0.68rem",
+                            },
+                            height: {
+                              xs: 22,
+                              sm: 24,
                             },
                             "& .MuiChip-icon": {
                               fontSize: {
-                                xs: 14,
-                                sm: 16,
+                                xs: 13,
+                                sm: 15,
                               },
                             },
                           }}
                         />
-                      </Stack>
-
-                      {/* TAKEN BY */}
-
-                      <Box>
-                        <Typography
-                          sx={{
-                            fontSize: {
-                              xs: "0.65rem",
-                              sm: "0.75rem",
-                            },
-                            variant: "caption",
-                            color: "text.secondary",
-                            display: "block",
-                          }}
-                        >
-                          Taken by
-                        </Typography>
-
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontWeight: 500,
-                            fontSize: {
-                              xs: "0.8rem",
-                              sm: "0.875rem",
-                            },
-                          }}
-                        >
-                          {order.takenBy.name}
-                        </Typography>
                       </Box>
-                    </Stack>
+                    </Box>
+
+                    <Divider sx={{ my: { xs: 1.5, sm: 2 } }} />
+
+                    {/* TAKEN BY */}
+
+                    <Box>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{
+                          display: "block",
+                          fontSize: {
+                            xs: "0.65rem",
+                            sm: "0.75rem",
+                          },
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        Taken by
+                      </Typography>
+
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          mt: 0.25,
+                          fontWeight: 500,
+                          fontSize: {
+                            xs: "0.8rem",
+                            sm: "0.875rem",
+                          },
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        {order.takenBy.name}
+                      </Typography>
+                    </Box>
                   </CardContent>
                 </CardActionArea>
               </Card>

@@ -1,0 +1,275 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --------------------------------------------------
+    // USER HELPERS
+    // --------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isActiveUser() {
+      return isSignedIn()
+        && get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data.disabled == false;
+    }
+
+    function isAdmin() {
+      return isActiveUser()
+        && get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data.role == "admin";
+    }
+
+    function isValidStatusTransition() {
+      return
+        (
+          resource.data.status == "NEW"
+          && (
+            request.resource.data.status == "IN_PRODUCTION"
+            || request.resource.data.status == "CANCELLED"
+          )
+        )
+        ||
+        (
+          resource.data.status == "IN_PRODUCTION"
+          && (
+            request.resource.data.status == "READY"
+            || request.resource.data.status == "CANCELLED"
+          )
+        )
+        ||
+        (
+          resource.data.status == "READY"
+          && (
+            request.resource.data.status == "COMPLETED"
+            || request.resource.data.status == "CANCELLED"
+          )
+        );
+    }
+
+    // --------------------------------------------------
+    // USERS
+    // --------------------------------------------------
+
+    match /users/{userId} {
+
+      // Active users can read their own profile.
+      // Admins can read all user profiles.
+      allow read: if isActiveUser()
+        && (
+          request.auth.uid == userId
+          || isAdmin()
+        );
+
+      // Admin can only enable/disable users.
+      allow update: if isAdmin()
+        && request.resource.data
+          .diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+            "disabled",
+            "updatedAt"
+          ])
+        && request.resource.data.disabled is bool
+        && request.resource.data.updatedAt == request.time;
+
+      // Profiles are created manually through Firebase/Admin tools.
+      allow create: if false;
+
+      allow delete: if false;
+    }
+
+    // --------------------------------------------------
+    // ORDER COUNTER
+    // --------------------------------------------------
+
+    match /counters/orders {
+
+      // Required for order-number transaction.
+      allow get: if isActiveUser();
+
+      allow list: if false;
+
+      // Counter may only increase by exactly one.
+      //
+      // The corresponding order must be created
+      // in the same atomic transaction.
+      allow update: if isActiveUser()
+        && request.resource.data.lastNumber is int
+        && resource.data.lastNumber is int
+        && request.resource.data.lastNumber
+          == resource.data.lastNumber + 1
+        && getAfter(
+          /databases/$(database)/documents/orders/$(string(
+            request.resource.data.lastNumber
+          ))
+        ).data.sequenceNumber
+          == request.resource.data.lastNumber
+        && getAfter(
+          /databases/$(database)/documents/orders/$(string(
+            request.resource.data.lastNumber
+          ))
+        ).data.takenBy.uid
+          == request.auth.uid;
+
+      allow create: if false;
+
+      allow delete: if false;
+    }
+
+    // --------------------------------------------------
+    // ORDERS
+    // --------------------------------------------------
+
+    match /orders/{orderId} {
+
+      // Active staff/admin users can read orders.
+      allow read: if isActiveUser();
+
+      // ------------------------------------------------
+      // CREATE ORDER
+      // ------------------------------------------------
+
+      allow create: if isActiveUser()
+        && request.resource.data.status == "NEW"
+        && request.resource.data.sequenceNumber is int
+        && request.resource.data.orderNumber is string
+        && request.resource.data.takenBy.uid == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.statusUpdatedAt == request.time;
+
+      // ------------------------------------------------
+      // UPDATE ORDER
+      // ------------------------------------------------
+
+      allow update: if isActiveUser()
+        && (
+
+          // ============================================
+          // NORMAL ORDER EDIT
+          // ============================================
+
+          (
+            resource.data.status != "COMPLETED"
+            && resource.data.status != "CANCELLED"
+
+            // Status cannot change during normal editing.
+            && request.resource.data.status
+              == resource.data.status
+
+            // Order identity cannot change.
+            && request.resource.data.orderNumber
+              == resource.data.orderNumber
+
+            && request.resource.data.sequenceNumber
+              == resource.data.sequenceNumber
+
+            // Original staff member cannot change.
+            && request.resource.data.takenBy
+              == resource.data.takenBy
+
+            // Creation timestamp cannot change.
+            && request.resource.data.createdAt
+              == resource.data.createdAt
+
+            // Status timestamp cannot change.
+            && request.resource.data.statusUpdatedAt
+              == resource.data.statusUpdatedAt
+
+            // Completion timestamp cannot change.
+            && request.resource.data.completedAt
+              == resource.data.completedAt
+
+            // updatedAt must be generated by Firestore.
+            && request.resource.data.updatedAt == request.time
+
+            // Only editable fields may change.
+            && request.resource.data
+              .diff(resource.data)
+              .affectedKeys()
+              .hasOnly([
+                "customer",
+                "estimatedDeliveryDate",
+                "items",
+                "updatedAt"
+              ])
+          )
+
+          ||
+
+          // ============================================
+          // STATUS UPDATE
+          // ============================================
+
+          (
+            request.resource.data.status in [
+              "NEW",
+              "IN_PRODUCTION",
+              "READY",
+              "COMPLETED",
+              "CANCELLED"
+            ]
+
+            // Order identity cannot change.
+            && request.resource.data.orderNumber
+              == resource.data.orderNumber
+
+            && request.resource.data.sequenceNumber
+              == resource.data.sequenceNumber
+
+            // Taken-by information cannot change.
+            && request.resource.data.takenBy
+              == resource.data.takenBy
+
+            // Creation timestamp cannot change.
+            && request.resource.data.createdAt
+              == resource.data.createdAt
+
+            // Status timestamp must be generated now.
+            && request.resource.data.statusUpdatedAt
+              == request.time
+
+            // Updated timestamp must be generated now.
+            && request.resource.data.updatedAt
+              == request.time
+
+            // completedAt rules.
+            && (
+              (
+                request.resource.data.status == "COMPLETED"
+                && request.resource.data.completedAt == request.time
+              )
+              ||
+              (
+                request.resource.data.status != "COMPLETED"
+                && request.resource.data.completedAt == null
+              )
+            )
+
+            // Only status fields may change.
+            && request.resource.data
+              .diff(resource.data)
+              .affectedKeys()
+              .hasOnly([
+                "status",
+                "statusUpdatedAt",
+                "updatedAt",
+                "completedAt"
+              ])
+
+            // Must follow valid workflow.
+            && isValidStatusTransition()
+          )
+        );
+
+      // Orders cannot be deleted from the client.
+      allow delete: if false;
+    }
+  }
+}

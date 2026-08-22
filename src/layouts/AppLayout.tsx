@@ -66,6 +66,14 @@ function AppLayout() {
     setMobileOpen((previous) => !previous);
   };
 
+  const handleNavigation = (path: string) => {
+    navigate(path);
+
+    if (isMobile) {
+      setMobileOpen(false);
+    }
+  };
+
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const menuOpen = Boolean(anchorEl);
@@ -104,19 +112,19 @@ function AppLayout() {
               key={item.label}
               onClick={() => {
                 if (item.label === "Dashboard") {
-                  navigate("/");
+                  handleNavigation("/");
                 }
-                
+
                 if (item.label === "Orders") {
-                  navigate("/orders");
+                  handleNavigation("/orders");
                 }
 
                 if (item.label === "History") {
-                  navigate("/history");
+                  handleNavigation("/history");
                 }
 
                 if (item.label === "Admin") {
-                  navigate("/admin");
+                  handleNavigation("/admin");
                 }
               }}
             >

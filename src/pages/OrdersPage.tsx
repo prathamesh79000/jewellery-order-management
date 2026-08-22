@@ -10,10 +10,10 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-
+import Button from "@mui/material/Button";
 import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
-
+import AddIcon from "@mui/icons-material/Add";
 import { getActiveOrders } from "../services/orderService";
 import type { Order } from "../types/order";
 import { getOrderPriority, type OrderPriority } from "../utils/orderPriority";
@@ -215,39 +215,57 @@ function OrdersPage() {
       {/* HEADER */}
       {/* ------------------------------------------ */}
 
-      <Box
+      <Stack
         sx={{
-          mb: {
-            xs: 2,
-            sm: 3,
+          flexDirection: {
+            xs: "column",
+            sm: "row",
           },
+          gap: {
+            xs: 1.5,
+            sm: 2,
+          },
+          justifyContent: "space-between",
+          alignItems: {
+            xs: "stretch",
+            sm: "center",
+          },
+          mb: 3,
         }}
       >
-        <Typography
-          sx={{
-            fontSize: {
-              xs: "1.5rem",
-              sm: "2.125rem",
-            },
-            fontWeight: 700,
-          }}
-        >
-          Orders
-        </Typography>
+        <Box>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 700,
+            }}
+          >
+            Orders
+          </Typography>
 
-        <Typography
-          color="text.secondary"
+          <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+            View and manage active customer orders.
+          </Typography>
+        </Box>
+
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => navigate("/orders/create")}
           sx={{
-            mt: 0.5,
-            fontSize: {
-              xs: "0.8rem",
-              sm: "1rem",
+            alignSelf: {
+              xs: "stretch",
+              sm: "auto",
+            },
+            minWidth: {
+              xs: 0,
+              sm: 190,
             },
           }}
         >
-          View and manage active customer orders.
-        </Typography>
-      </Box>
+          Create New Order
+        </Button>
+      </Stack>
 
       {/* ------------------------------------------ */}
       {/* SEARCH */}
