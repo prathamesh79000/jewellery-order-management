@@ -26,7 +26,8 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import NotesOutlinedIcon from "@mui/icons-material/NotesOutlined";
 import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
-
+import { auth } from "../firebase/firebase";
+import { createNotification } from "../services/notificationService";
 import Stack from "@mui/material/Stack";
 
 import { useNavigate, useParams } from "react-router-dom";
@@ -264,6 +265,58 @@ function OrderDetailsPage() {
         ...order,
         status: newStatus,
       });
+
+      try {
+        const currentUser = auth.currentUser;
+
+        if (currentUser) {
+          let notificationType:
+            | "ORDER_IN_PRODUCTION"
+            | "ORDER_READY"
+            | "ORDER_COMPLETED"
+            | "ORDER_CANCELLED";
+
+          let title: string;
+
+          switch (newStatus) {
+            case "IN_PRODUCTION":
+              notificationType = "ORDER_IN_PRODUCTION";
+              title = "Order Moved to Production";
+              break;
+
+            case "READY":
+              notificationType = "ORDER_READY";
+              title = "Order Ready for Delivery";
+              break;
+
+            case "COMPLETED":
+              notificationType = "ORDER_COMPLETED";
+              title = "Order Completed";
+              break;
+
+            case "CANCELLED":
+              notificationType = "ORDER_CANCELLED";
+              title = "Order Cancelled";
+              break;
+
+            default:
+              return;
+          }
+
+          await createNotification({
+            recipientUid: currentUser.uid,
+            type: notificationType,
+            title,
+            message: `${orderNumber} is now ${formatStatus(newStatus)}.`,
+            orderNumber,
+          });
+        }
+      } catch (notificationError) {
+        console.error(
+          "Order status updated successfully, but notification could not be created:",
+          notificationError,
+        );
+      }
 
       setSuccess(`Order status updated to ${formatStatus(newStatus)}.`);
     } catch (err) {

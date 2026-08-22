@@ -84,6 +84,42 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+// --------------------------------------------------
+// NOTIFICATIONS
+// --------------------------------------------------
+
+match /notifications/{notificationId} {
+
+  // Active users can read only their own notifications.
+  allow read: if isActiveUser()
+    && resource.data.recipientUid == request.auth.uid;
+
+  // Active users can create only their own notifications.
+  allow create: if isActiveUser()
+    && request.resource.data.recipientUid == request.auth.uid
+    && request.resource.data.type is string
+    && request.resource.data.title is string
+    && request.resource.data.message is string
+    && request.resource.data.orderNumber is string
+    && request.resource.data.read == false;
+
+  // Users can only change the read state
+  // of their own notifications.
+  allow update: if isActiveUser()
+    && resource.data.recipientUid == request.auth.uid
+    && request.resource.data.recipientUid
+      == resource.data.recipientUid
+    && request.resource.data
+      .diff(resource.data)
+      .affectedKeys()
+      .hasOnly([
+        "read"
+      ])
+    && request.resource.data.read is bool;
+
+  allow delete: if false;
+}
+    
     // --------------------------------------------------
     // ORDER COUNTER
     // --------------------------------------------------

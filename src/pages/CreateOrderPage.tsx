@@ -9,7 +9,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-
+import { createNotification } from "../services/notificationService";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import { auth } from "../firebase/firebase";
@@ -266,6 +266,20 @@ function CreateOrderPage() {
           notes: item.notes.trim(),
         })),
       });
+      try {
+        await createNotification({
+          recipientUid: auth.currentUser.uid,
+          type: "NEW_ORDER",
+          title: "New Order Created",
+          message: `${order.orderNumber} has been created successfully.`,
+          orderNumber: order.orderNumber,
+        });
+      } catch (notificationError) {
+        console.error(
+          "Order created successfully, but notification could not be created:",
+          notificationError,
+        );
+      }
 
       setSuccessMessage(`Order ${order.orderNumber} created successfully.`);
 

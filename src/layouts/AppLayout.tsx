@@ -1,32 +1,42 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AppBar,
+  Avatar,
+  Badge,
   Box,
+  Divider,
   Drawer,
   IconButton,
   List,
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
+  Popover,
   Toolbar,
   Typography,
   useMediaQuery,
   useTheme,
-  Avatar,
-  Divider,
-  Menu,
-  MenuItem,
 } from "@mui/material";
 
 import LogoutIcon from "@mui/icons-material/Logout";
-import { isAdmin } from "../utils/permissions";
-import MenuIcon from "@mui/icons-material/Menu";
+import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import HistoryIcon from "@mui/icons-material/History";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import MenuIcon from "@mui/icons-material/Menu";
+import {
+  subscribeToNotifications,
+  markNotificationAsRead,
+} from "../services/notificationService";
+import type { Notification } from "../types/notification";
+
+import { isAdmin } from "../utils/permissions";
 import { useAuth } from "../contexts/AuthContext";
 import { logoutUser } from "../services/authService";
+
 import { Outlet, useNavigate } from "react-router-dom";
 
 const drawerWidth = 240;
@@ -56,11 +66,31 @@ const navigationItems = [
 
 function AppLayout() {
   const navigate = useNavigate();
-  const { userProfile } = useAuth();
+  const { firebaseUser, userProfile } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
+  const [notificationAnchorEl, setNotificationAnchorEl] =
+    useState<null | HTMLElement>(null);
+
+  /*
+   * Temporary local notification state.
+   *
+   * This will be replaced with Firestore realtime
+   * notifications in the next Phase 8 step.
+   */
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const menuOpen = Boolean(anchorEl);
+
+  const notificationMenuOpen = Boolean(notificationAnchorEl);
+
+  const unreadNotificationCount = notifications.filter(
+    (notification) => !notification.read,
+  ).length;
 
   const handleDrawerToggle = () => {
     setMobileOpen((previous) => !previous);
@@ -73,10 +103,19 @@ function AppLayout() {
       setMobileOpen(false);
     }
   };
+  useEffect(() => {
+    if (!firebaseUser) {
+      setNotifications([]);
+      return;
+    }
 
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const unsubscribe = subscribeToNotifications(
+      firebaseUser.uid,
+      setNotifications,
+    );
 
-  const menuOpen = Boolean(anchorEl);
+    return unsubscribe;
+  }, [firebaseUser]);
 
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -86,6 +125,28 @@ function AppLayout() {
     setAnchorEl(null);
   };
 
+  const handleNotificationOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setNotificationAnchorEl(event.currentTarget);
+  };
+
+  const handleNotificationClose = () => {
+    setNotificationAnchorEl(null);
+  };
+
+  const handleNotificationClick = async (notification: Notification) => {
+    try {
+      if (!notification.read) {
+        await markNotificationAsRead(notification.id);
+      }
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+    } finally {
+      setNotificationAnchorEl(null);
+
+      navigate(`/orders/${notification.orderNumber}`);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await logoutUser();
@@ -93,13 +154,18 @@ function AppLayout() {
       console.error("Logout failed:", error);
     } finally {
       setAnchorEl(null);
+      setNotificationAnchorEl(null);
     }
   };
 
   const drawerContent = (
     <Box>
       <Toolbar>
-        <Typography sx={{ variant: "h6", fontWeight: 700 }}>
+        <Typography
+          sx={{
+            fontWeight: 700,
+          }}
+        >
           Hardik Jewellers
         </Typography>
       </Toolbar>
@@ -138,7 +204,12 @@ function AppLayout() {
   );
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+      }}
+    >
       <AppBar
         position="fixed"
         sx={{
@@ -156,21 +227,51 @@ function AppLayout() {
               color="inherit"
               edge="start"
               onClick={handleDrawerToggle}
-              sx={{ mr: 2 }}
+              sx={{
+                mr: 2,
+              }}
             >
               <MenuIcon />
             </IconButton>
           )}
 
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+          <Typography
+            variant="h6"
+            component="div"
+            sx={{
+              flexGrow: 1,
+            }}
+          >
             Order Management
           </Typography>
+
+          {/* NOTIFICATIONS */}
+
+          <IconButton
+            color="inherit"
+            onClick={handleNotificationOpen}
+            aria-label="Notifications"
+            sx={{
+              ml: 0.5,
+            }}
+          >
+            <Badge
+              badgeContent={unreadNotificationCount}
+              color="error"
+              max={99}
+              invisible={unreadNotificationCount === 0}
+            >
+              <NotificationsNoneOutlinedIcon />
+            </Badge>
+          </IconButton>
+
+          {/* USER MENU */}
 
           <IconButton
             onClick={handleUserMenuOpen}
             color="inherit"
             sx={{
-              ml: 1,
+              ml: 0.5,
             }}
           >
             <Avatar
@@ -185,6 +286,169 @@ function AppLayout() {
             </Avatar>
           </IconButton>
 
+          {/* NOTIFICATION POPOVER */}
+
+          <Popover
+            open={notificationMenuOpen}
+            anchorEl={notificationAnchorEl}
+            onClose={handleNotificationClose}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "right",
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "right",
+            }}
+            slotProps={{
+              paper: {
+                sx: {
+                  width: {
+                    xs: "calc(100vw - 24px)",
+                    sm: 360,
+                  },
+                  maxWidth: 360,
+                  borderRadius: 2,
+                  mt: 1,
+                },
+              },
+            }}
+          >
+            <Box
+              sx={{
+                px: 2,
+                py: 1.5,
+              }}
+            >
+              <Typography
+                sx={{
+                  fontWeight: 700,
+                }}
+              >
+                Notifications
+              </Typography>
+            </Box>
+
+            <Divider />
+
+            {notifications.length === 0 ? (
+              <Box
+                sx={{
+                  px: 2,
+                  py: 4,
+                  textAlign: "center",
+                }}
+              >
+                <NotificationsNoneOutlinedIcon
+                  sx={{
+                    fontSize: 38,
+                    color: "text.disabled",
+                  }}
+                />
+
+                <Typography
+                  sx={{
+                    mt: 1,
+                    fontWeight: 600,
+                  }}
+                >
+                  No notifications
+                </Typography>
+
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{
+                    mt: 0.5,
+                  }}
+                >
+                  You're all caught up.
+                </Typography>
+              </Box>
+            ) : (
+              <List
+                disablePadding
+                sx={{
+                  maxHeight: 420,
+                  overflowY: "auto",
+                }}
+              >
+                {notifications.map((notification) => (
+                  <ListItemButton
+                    key={notification.id}
+                    onClick={() => handleNotificationClick(notification)}
+                    sx={{
+                      px: 2,
+                      py: 1.5,
+                      alignItems: "flex-start",
+                      backgroundColor: notification.read
+                        ? "transparent"
+                        : "action.hover",
+                      "&:hover": {
+                        backgroundColor: "action.selected",
+                      },
+                    }}
+                  >
+                    <ListItemIcon
+                      sx={{
+                        minWidth: 36,
+                        mt: 0.25,
+                      }}
+                    >
+                      <NotificationsNoneOutlinedIcon fontSize="small" />
+                    </ListItemIcon>
+
+                    <ListItemText
+                      primary={
+                        <Typography
+                          sx={{
+                            fontWeight: notification.read ? 500 : 700,
+                            fontSize: "0.9rem",
+                          }}
+                        >
+                          {notification.title}
+                        </Typography>
+                      }
+                      secondary={
+                        <Box>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{
+                              mt: 0.25,
+                            }}
+                          >
+                            {notification.message}
+                          </Typography>
+
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{
+                              display: "block",
+                              mt: 0.5,
+                            }}
+                          >
+                            {notification.createdAt
+                              ?.toDate()
+                              .toLocaleString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                                hour: "numeric",
+                                minute: "2-digit",
+                              })}
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                  </ListItemButton>
+                ))}
+              </List>
+            )}
+          </Popover>
+
+          {/* USER POPOVER */}
+
           <Menu
             anchorEl={anchorEl}
             open={menuOpen}
@@ -198,8 +462,17 @@ function AppLayout() {
               horizontal: "right",
             }}
           >
-            <Box sx={{ px: 2, py: 1 }}>
-              <Typography sx={{ fontWeight: 700 }}>
+            <Box
+              sx={{
+                px: 2,
+                py: 1,
+              }}
+            >
+              <Typography
+                sx={{
+                  fontWeight: 700,
+                }}
+              >
                 {userProfile?.name}
               </Typography>
 
@@ -219,6 +492,8 @@ function AppLayout() {
           </Menu>
         </Toolbar>
       </AppBar>
+
+      {/* NAVIGATION DRAWER */}
 
       <Box
         component="nav"
@@ -263,6 +538,8 @@ function AppLayout() {
           </Drawer>
         )}
       </Box>
+
+      {/* MAIN CONTENT */}
 
       <Box
         component="main"
