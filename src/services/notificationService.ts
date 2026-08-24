@@ -6,7 +6,6 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
-  where,
   type Unsubscribe,
 } from "firebase/firestore";
 
@@ -15,53 +14,46 @@ import { db } from "../firebase/firebase";
 import type { Notification, NotificationType } from "../types/notification";
 
 interface CreateNotificationInput {
-  recipientUid: string;
   type: NotificationType;
   title: string;
   message: string;
   orderNumber: string;
+  createdByUid: string;
+  createdByName: string;
 }
 
 function createNotificationId(
-  recipientUid: string,
   orderNumber: string,
   type: NotificationType,
 ): string {
-  return `${recipientUid}_${orderNumber}_${type}`;
+  return `${orderNumber}_${type}`;
 }
 
 export async function createNotification(
   input: CreateNotificationInput,
 ): Promise<void> {
-  const notificationId = createNotificationId(
-    input.recipientUid,
-    input.orderNumber,
-    input.type,
-  );
+  const notificationId = createNotificationId(input.orderNumber, input.type);
 
   const notificationRef = doc(db, "notifications", notificationId);
 
   await setDoc(notificationRef, {
-    recipientUid: input.recipientUid,
     type: input.type,
     title: input.title,
     message: input.message,
     orderNumber: input.orderNumber,
+    createdByUid: input.createdByUid,
+    createdByName: input.createdByName,
     createdAt: serverTimestamp(),
-    read: false,
+    readBy: {},
   });
 }
 
 export function subscribeToNotifications(
-  recipientUid: string,
   callback: (notifications: Notification[]) => void,
 ): Unsubscribe {
   const notificationsRef = collection(db, "notifications");
 
-  const notificationsQuery = query(
-    notificationsRef,
-    where("recipientUid", "==", recipientUid),
-  );
+  const notificationsQuery = query(notificationsRef);
 
   return onSnapshot(notificationsQuery, (snapshot) => {
     const notifications = snapshot.docs
@@ -78,16 +70,30 @@ export function subscribeToNotifications(
         return timeB - timeA;
       });
 
-    callback(notifications);
+    /*
+     * The notification collection is shared.
+     * Everyone sees the same operational events.
+     *
+     * We keep read/unread state per user in
+     * notification.readBy[userUid].
+     */
+    callback(
+      notifications.map((notification) => ({
+        ...notification,
+        readBy: notification.readBy ?? {},
+        id: notification.id,
+      })),
+    );
   });
 }
 
 export async function markNotificationAsRead(
   notificationId: string,
+  userUid: string,
 ): Promise<void> {
   const notificationRef = doc(db, "notifications", notificationId);
 
   await updateDoc(notificationRef, {
-    read: true,
+    [`readBy.${userUid}`]: true,
   });
 }

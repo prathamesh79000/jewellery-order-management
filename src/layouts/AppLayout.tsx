@@ -89,7 +89,8 @@ function AppLayout() {
   const notificationMenuOpen = Boolean(notificationAnchorEl);
 
   const unreadNotificationCount = notifications.filter(
-    (notification) => !notification.read,
+    (notification) =>
+      firebaseUser && notification.readBy?.[firebaseUser.uid] !== true,
   ).length;
 
   const handleDrawerToggle = () => {
@@ -109,10 +110,7 @@ function AppLayout() {
       return;
     }
 
-    const unsubscribe = subscribeToNotifications(
-      firebaseUser.uid,
-      setNotifications,
-    );
+    const unsubscribe = subscribeToNotifications(setNotifications);
 
     return unsubscribe;
   }, [firebaseUser]);
@@ -135,8 +133,8 @@ function AppLayout() {
 
   const handleNotificationClick = async (notification: Notification) => {
     try {
-      if (!notification.read) {
-        await markNotificationAsRead(notification.id);
+      if (firebaseUser && notification.readBy?.[firebaseUser.uid] !== true) {
+        await markNotificationAsRead(notification.id, firebaseUser.uid);
       }
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
@@ -381,9 +379,11 @@ function AppLayout() {
                       px: 2,
                       py: 1.5,
                       alignItems: "flex-start",
-                      backgroundColor: notification.read
-                        ? "transparent"
-                        : "action.hover",
+                      backgroundColor:
+                        firebaseUser &&
+                        notification.readBy?.[firebaseUser.uid] === true
+                          ? "transparent"
+                          : "action.hover",
                       "&:hover": {
                         backgroundColor: "action.selected",
                       },
@@ -402,7 +402,11 @@ function AppLayout() {
                       primary={
                         <Typography
                           sx={{
-                            fontWeight: notification.read ? 500 : 700,
+                            fontWeight:
+                              firebaseUser &&
+                              notification.readBy?.[firebaseUser.uid] === true
+                                ? 500
+                                : 700,
                             fontSize: "0.9rem",
                           }}
                         >

@@ -268,11 +268,12 @@ function CreateOrderPage() {
       });
       try {
         await createNotification({
-          recipientUid: auth.currentUser.uid,
           type: "NEW_ORDER",
           title: "New Order Created",
           message: `${order.orderNumber} has been created successfully.`,
           orderNumber: order.orderNumber,
+          createdByUid: auth.currentUser.uid,
+          createdByName: userProfile.name,
         });
       } catch (notificationError) {
         console.error(

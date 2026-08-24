@@ -35,6 +35,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { getOrderByNumber, updateOrderStatus } from "../services/orderService";
 
 import type { Order, OrderStatus } from "../types/order";
+import { useAuth } from "../contexts/AuthContext";
 
 function formatDate(dateString: string): string {
   const date = new Date(`${dateString}T00:00:00`);
@@ -177,7 +178,7 @@ function InfoItem({ icon, label, value }: InfoItemProps) {
 
 function OrderDetailsPage() {
   const navigate = useNavigate();
-
+  const { userProfile } = useAuth();
   const { orderNumber } = useParams<{
     orderNumber: string;
   }>();
@@ -304,11 +305,12 @@ function OrderDetailsPage() {
           }
 
           await createNotification({
-            recipientUid: currentUser.uid,
             type: notificationType,
             title,
             message: `${orderNumber} is now ${formatStatus(newStatus)}.`,
             orderNumber,
+            createdByUid: currentUser.uid,
+            createdByName: userProfile?.name ?? "Staff",
           });
         }
       } catch (notificationError) {

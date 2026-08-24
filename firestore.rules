@@ -84,41 +84,44 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-// --------------------------------------------------
+    // --------------------------------------------------
 // NOTIFICATIONS
 // --------------------------------------------------
 
 match /notifications/{notificationId} {
 
-  // Active users can read only their own notifications.
-  allow read: if isActiveUser()
-    && resource.data.recipientUid == request.auth.uid;
+  // All active staff/admin users can read operational
+  // notifications.
+  allow read: if isActiveUser();
 
-  // Active users can create only their own notifications.
+  // An active user can create a notification only
+  // claiming themselves as the actor.
   allow create: if isActiveUser()
-    && request.resource.data.recipientUid == request.auth.uid
+    && request.resource.data.createdByUid
+      == request.auth.uid
     && request.resource.data.type is string
     && request.resource.data.title is string
     && request.resource.data.message is string
     && request.resource.data.orderNumber is string
-    && request.resource.data.read == false;
+    && request.resource.data.createdByName is string;
 
-  // Users can only change the read state
-  // of their own notifications.
+  // A user may only update their own read state.
   allow update: if isActiveUser()
-    && resource.data.recipientUid == request.auth.uid
-    && request.resource.data.recipientUid
-      == resource.data.recipientUid
-    && request.resource.data
-      .diff(resource.data)
+    && request.resource.data.diff(resource.data)
       .affectedKeys()
       .hasOnly([
-        "read"
+        "readBy"
       ])
-    && request.resource.data.read is bool;
+    && request.resource.data.readBy.diff(resource.data.readBy)
+      .affectedKeys()
+      .hasOnly([
+        request.auth.uid
+      ])
+    && request.resource.data.readBy[request.auth.uid] == true;
 
   allow delete: if false;
 }
+
     
     // --------------------------------------------------
     // ORDER COUNTER

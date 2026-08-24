@@ -9,11 +9,15 @@ export type NotificationType =
 
 export interface Notification {
   id: string;
-  recipientUid: string;
   type: NotificationType;
   title: string;
   message: string;
   orderNumber: string;
+
+  createdByUid: string;
+  createdByName: string;
+
   createdAt: Timestamp;
-  read: boolean;
+
+  readBy: Record<string, boolean>;
 }
