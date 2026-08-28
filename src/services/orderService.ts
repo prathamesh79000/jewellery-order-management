@@ -1,12 +1,17 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   limit,
+  orderBy,
   query,
   runTransaction,
   serverTimestamp,
+  startAfter,
   where,
+  type DocumentData,
+  type QueryDocumentSnapshot,
 } from "firebase/firestore";
 
 import { db } from "../firebase/firebase";
@@ -34,8 +39,32 @@ export interface UpdateOrderInput {
   items: OrderItem[];
 }
 
+export interface HistoryOrdersPage {
+  orders: Order[];
+  lastDocument: QueryDocumentSnapshot<DocumentData> | null;
+  hasMore: boolean;
+}
+
 function formatOrderNumber(sequenceNumber: number): string {
   return `${ORDER_PREFIX}-${String(sequenceNumber).padStart(4, "0")}`;
+}
+
+function getOrderRefFromNumber(orderNumber: string) {
+  const normalizedOrderNumber = orderNumber.trim().toUpperCase();
+
+  const match = normalizedOrderNumber.match(/^HJ-(\d+)$/);
+
+  if (!match) {
+    throw new Error("Invalid order number.");
+  }
+
+  const sequenceNumber = Number(match[1]);
+
+  if (!Number.isInteger(sequenceNumber) || sequenceNumber <= 0) {
+    throw new Error("Invalid order number.");
+  }
+
+  return doc(db, "orders", String(sequenceNumber));
 }
 
 export async function createOrder(input: CreateOrderInput): Promise<Order> {
@@ -71,6 +100,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
      * orders/1 → HJ-0001
      * orders/2 → HJ-0002
      */
+
     const orderRef = doc(ordersCollection, String(nextNumber));
 
     const orderData = {
@@ -100,6 +130,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     /*
      * Update counter.
      */
+
     transaction.update(counterRef, {
       lastNumber: nextNumber,
       updatedAt: serverTimestamp(),
@@ -108,7 +139,16 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     /*
      * Create order.
      */
+
     transaction.set(orderRef, orderData);
+
+    /*
+     * serverTimestamp() values are resolved by Firestore
+     * after the transaction completes.
+     *
+     * The returned object is therefore only an optimistic
+     * representation for the caller.
+     */
 
     return {
       ...orderData,
@@ -124,42 +164,47 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
 export async function getOrderByNumber(
   orderNumber: string,
 ): Promise<Order | null> {
-  const ordersCollection = collection(db, "orders");
+  const normalizedOrderNumber = orderNumber.trim().toUpperCase();
 
-  const ordersQuery = query(
-    ordersCollection,
-    where("orderNumber", "==", orderNumber),
-    limit(1),
-  );
+  const match = normalizedOrderNumber.match(/^HJ-(\d+)$/);
 
-  const snapshot = await getDocs(ordersQuery);
-
-  if (snapshot.empty) {
+  if (!match) {
     return null;
   }
 
-  return snapshot.docs[0].data() as Order;
+  const sequenceNumber = Number(match[1]);
+
+  if (!Number.isInteger(sequenceNumber) || sequenceNumber <= 0) {
+    return null;
+  }
+
+  const orderRef = doc(db, "orders", String(sequenceNumber));
+
+  const snapshot = await getDoc(orderRef);
+
+  if (!snapshot.exists()) {
+    return null;
+  }
+
+  const order = snapshot.data() as Order;
+
+  /*
+   * Extra safety check so an invalid/mismatched document
+   * can never be displayed as the requested order.
+   */
+
+  if (order.orderNumber.toUpperCase() !== normalizedOrderNumber) {
+    return null;
+  }
+
+  return order;
 }
 
 export async function updateOrder(
   orderNumber: string,
   input: UpdateOrderInput,
 ): Promise<void> {
-  const ordersCollection = collection(db, "orders");
-
-  const ordersQuery = query(
-    ordersCollection,
-    where("orderNumber", "==", orderNumber),
-    limit(1),
-  );
-
-  const snapshot = await getDocs(ordersQuery);
-
-  if (snapshot.empty) {
-    throw new Error("Order not found.");
-  }
-
-  const orderRef = snapshot.docs[0].ref;
+  const orderRef = getOrderRefFromNumber(orderNumber);
 
   await runTransaction(db, async (transaction) => {
     const orderSnapshot = await transaction.get(orderRef);
@@ -176,6 +221,7 @@ export async function updateOrder(
      * Completed and cancelled orders
      * cannot be edited.
      */
+
     if (currentStatus === "COMPLETED" || currentStatus === "CANCELLED") {
       throw new Error("Completed or cancelled orders cannot be edited.");
     }
@@ -221,21 +267,7 @@ export async function updateOrderStatus(
   orderNumber: string,
   status: OrderStatus,
 ): Promise<void> {
-  const ordersCollection = collection(db, "orders");
-
-  const ordersQuery = query(
-    ordersCollection,
-    where("orderNumber", "==", orderNumber),
-    limit(1),
-  );
-
-  const snapshot = await getDocs(ordersQuery);
-
-  if (snapshot.empty) {
-    throw new Error("Order not found.");
-  }
-
-  const orderRef = snapshot.docs[0].ref;
+  const orderRef = getOrderRefFromNumber(orderNumber);
 
   await runTransaction(db, async (transaction) => {
     /*
@@ -243,6 +275,7 @@ export async function updateOrderStatus(
      * the transaction so we validate against the
      * current Firestore status.
      */
+
     const orderSnapshot = await transaction.get(orderRef);
 
     if (!orderSnapshot.exists()) {
@@ -256,6 +289,7 @@ export async function updateOrderStatus(
     /*
      * No change required.
      */
+
     if (currentStatus === status) {
       return;
     }
@@ -263,6 +297,7 @@ export async function updateOrderStatus(
     /*
      * Prevent invalid status transitions.
      */
+
     if (!isValidStatusTransition(currentStatus, status)) {
       throw new Error(
         `Invalid status transition: ${currentStatus} → ${status}.`,
@@ -272,6 +307,7 @@ export async function updateOrderStatus(
     /*
      * Update status information.
      */
+
     transaction.update(orderRef, {
       status,
 
@@ -283,6 +319,7 @@ export async function updateOrderStatus(
        * Only completed orders receive
        * a completedAt timestamp.
        */
+
       completedAt: status === "COMPLETED" ? serverTimestamp() : null,
     });
   });
@@ -291,33 +328,65 @@ export async function updateOrderStatus(
 export async function getActiveOrders(): Promise<Order[]> {
   const ordersRef = collection(db, "orders");
 
-  const snapshot = await getDocs(ordersRef);
+  const ordersQuery = query(
+    ordersRef,
+    where("status", "in", ["NEW", "IN_PRODUCTION", "READY"]),
+  );
 
-  const activeOrders = snapshot.docs
-    .map((document) => {
-      return document.data() as Order;
-    })
-    .filter(
-      (order) =>
-        order.status === "NEW" ||
-        order.status === "IN_PRODUCTION" ||
-        order.status === "READY",
-    );
+  const snapshot = await getDocs(ordersQuery);
 
-  return activeOrders;
+  return snapshot.docs
+    .map((document) => document.data() as Order)
+    .sort((a, b) => b.sequenceNumber - a.sequenceNumber);
 }
 
 export async function getHistoryOrders(): Promise<Order[]> {
   const ordersRef = collection(db, "orders");
 
-  const snapshot = await getDocs(ordersRef);
+  const ordersQuery = query(
+    ordersRef,
+    where("status", "in", ["COMPLETED", "CANCELLED"]),
+  );
 
-  const historyOrders = snapshot.docs
+  const snapshot = await getDocs(ordersQuery);
+
+  return snapshot.docs
     .map((document) => document.data() as Order)
-    .filter(
-      (order) => order.status === "COMPLETED" || order.status === "CANCELLED",
-    )
     .sort((a, b) => b.sequenceNumber - a.sequenceNumber);
+}
 
-  return historyOrders;
+export async function getHistoryOrdersPage(
+  lastDocument: QueryDocumentSnapshot<DocumentData> | null = null,
+  pageSize = 20,
+): Promise<HistoryOrdersPage> {
+  const ordersRef = collection(db, "orders");
+
+  const baseConstraints = [
+    where("status", "in", ["COMPLETED", "CANCELLED"]),
+    orderBy("sequenceNumber", "desc"),
+  ];
+
+  const ordersQuery = lastDocument
+    ? query(
+        ordersRef,
+        ...baseConstraints,
+        startAfter(lastDocument),
+        limit(pageSize),
+      )
+    : query(ordersRef, ...baseConstraints, limit(pageSize));
+
+  const snapshot = await getDocs(ordersQuery);
+
+  const orders = snapshot.docs.map((document) => document.data() as Order);
+
+  return {
+    orders,
+
+    lastDocument:
+      snapshot.docs.length > 0
+        ? snapshot.docs[snapshot.docs.length - 1]
+        : lastDocument,
+
+    hasMore: snapshot.docs.length === pageSize,
+  };
 }

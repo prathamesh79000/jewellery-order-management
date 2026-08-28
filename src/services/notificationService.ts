@@ -49,6 +49,7 @@ export async function createNotification(
 }
 
 export function subscribeToNotifications(
+  uid: string,
   callback: (notifications: Notification[]) => void,
 ): Unsubscribe {
   const notificationsRef = collection(db, "notifications");
@@ -58,10 +59,13 @@ export function subscribeToNotifications(
   return onSnapshot(notificationsQuery, (snapshot) => {
     const notifications = snapshot.docs
       .map((document) => {
+        const data = document.data();
+
         return {
           id: document.id,
-          ...document.data(),
-        } as Notification;
+          ...data,
+          read: data.readBy?.[uid] === true,
+        } as unknown as Notification;
       })
       .sort((a, b) => {
         const timeA = a.createdAt?.toMillis?.() ?? 0;
@@ -70,20 +74,7 @@ export function subscribeToNotifications(
         return timeB - timeA;
       });
 
-    /*
-     * The notification collection is shared.
-     * Everyone sees the same operational events.
-     *
-     * We keep read/unread state per user in
-     * notification.readBy[userUid].
-     */
-    callback(
-      notifications.map((notification) => ({
-        ...notification,
-        readBy: notification.readBy ?? {},
-        id: notification.id,
-      })),
-    );
+    callback(notifications);
   });
 }
 

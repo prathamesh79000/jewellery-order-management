@@ -18,12 +18,16 @@ import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 
 import { useNavigate } from "react-router-dom";
 
-import { getHistoryOrders } from "../services/orderService";
+import {
+  getHistoryOrders,
+  getHistoryOrdersPage,
+} from "../services/orderService";
 import { exportCompletedOrdersReport } from "../utils/orderReport";
 
 import type { Order, OrderStatus } from "../types/order";
 import { useAuth } from "../contexts/AuthContext";
 import { isAdmin } from "../utils/permissions";
+import type { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
 
 type HistoryFilter = "ALL" | "COMPLETED" | "CANCELLED";
 
@@ -67,18 +71,27 @@ function HistoryPage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   const [error, setError] = useState("");
   const [reportError, setReportError] = useState("");
 
+  const [lastDocument, setLastDocument] =
+    useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+
+  const [hasMore, setHasMore] = useState(true);
+
   useEffect(() => {
-    const loadHistory = async () => {
+    const loadInitialHistory = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const historyOrders = await getHistoryOrders();
+        const result = await getHistoryOrdersPage(null, 20);
 
-        setOrders(historyOrders);
+        setOrders(result.orders);
+        setLastDocument(result.lastDocument);
+        setHasMore(result.hasMore);
       } catch (error) {
         console.error("Failed to load order history:", error);
 
@@ -92,7 +105,7 @@ function HistoryPage() {
       }
     };
 
-    loadHistory();
+    void loadInitialHistory();
   }, []);
 
   const filteredOrders = useMemo(() => {
@@ -118,11 +131,35 @@ function HistoryPage() {
     });
   }, [orders, search, statusFilter]);
 
-  const completedOrdersCount = useMemo(() => {
-    return orders.filter((order) => order.status === "COMPLETED").length;
-  }, [orders]);
+  const handleLoadMore = async () => {
+    if (loadingMore || !hasMore || !lastDocument) {
+      return;
+    }
 
-  const handleExportReport = () => {
+    try {
+      setLoadingMore(true);
+      setError("");
+
+      const result = await getHistoryOrdersPage(lastDocument, 20);
+
+      setOrders((currentOrders) => [...currentOrders, ...result.orders]);
+
+      setLastDocument(result.lastDocument);
+      setHasMore(result.hasMore);
+    } catch (error) {
+      console.error("Failed to load more history orders:", error);
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to load more history orders.",
+      );
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const handleExportReport = async () => {
     setReportError("");
 
     if (!fromDate || !toDate) {
@@ -135,21 +172,29 @@ function HistoryPage() {
       return;
     }
 
-    const hasCompletedOrders = orders.some(
-      (order) => order.status === "COMPLETED" && order.completedAt,
-    );
-
-    if (!hasCompletedOrders) {
-      setReportError("There are no completed orders available for the report.");
-      return;
-    }
-
     try {
-      exportCompletedOrdersReport(orders, fromDate, toDate);
+      const historyOrders = await getHistoryOrders();
+
+      const hasCompletedOrders = historyOrders.some(
+        (order) => order.status === "COMPLETED" && order.completedAt,
+      );
+
+      if (!hasCompletedOrders) {
+        setReportError(
+          "There are no completed orders available for the report.",
+        );
+        return;
+      }
+
+      exportCompletedOrdersReport(historyOrders, fromDate, toDate);
     } catch (error) {
       console.error("Failed to export completed orders report:", error);
 
-      setReportError("Failed to generate the Excel report. Please try again.");
+      setReportError(
+        error instanceof Error
+          ? error.message
+          : "Failed to generate the Excel report. Please try again.",
+      );
     }
   };
 
@@ -395,21 +440,6 @@ function HistoryPage() {
                 {reportError}
               </Alert>
             )}
-
-            {!loading && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{
-                  display: "block",
-                  mt: 1.5,
-                }}
-              >
-                {completedOrdersCount} completed{" "}
-                {completedOrdersCount === 1 ? "order" : "orders"} available for
-                reporting.
-              </Typography>
-            )}
           </Paper>
         </>
       )}
@@ -563,6 +593,28 @@ function HistoryPage() {
               </Stack>
             </Paper>
           ))}
+          {hasMore && (
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                mt: 3,
+                pb: 2,
+              }}
+            >
+              <Button
+                variant="outlined"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                sx={{
+                  minWidth: 160,
+                  minHeight: 44,
+                }}
+              >
+                {loadingMore ? <CircularProgress size={22} /> : "Load More"}
+              </Button>
+            </Box>
+          )}
         </Stack>
       )}
     </Box>

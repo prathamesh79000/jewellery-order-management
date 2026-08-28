@@ -110,7 +110,10 @@ function AppLayout() {
       return;
     }
 
-    const unsubscribe = subscribeToNotifications(setNotifications);
+    const unsubscribe = subscribeToNotifications(
+      firebaseUser.uid,
+      setNotifications,
+    );
 
     return unsubscribe;
   }, [firebaseUser]);
