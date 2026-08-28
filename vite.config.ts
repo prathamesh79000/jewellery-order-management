@@ -9,7 +9,7 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
 
-      includeAssets: ["favicon.ico", "favicon.svg", "robots.txt"],
+      includeAssets: ["favicon.svg", "apple-touch-icon.png"],
 
       manifest: {
         name: "Hardik Jewellers Order Management",
